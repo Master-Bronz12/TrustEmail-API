@@ -3,16 +3,18 @@ from pydantic import BaseModel
 from email_validator import validate_email, EmailNotValidError
 import socket
 
-# 🔐 Clé API (simple pour l’instant)
-API_KEY = "trustemail-123456"
+# 🔗 Import des clés API depuis un fichier séparé
+from api_keys import API_KEYS
 
 # 🔐 Vérification de la clé API
 def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or missing API Key"
-        )
+    for client, key in API_KEYS.items():
+        if x_api_key == client:
+            return key  # Retourne le nom du client
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid or missing API Key"
+    )
 
 # 🚀 Application FastAPI
 app = FastAPI(
@@ -34,12 +36,13 @@ def root():
 @app.post("/verify-email")
 def verify_email(
     data: EmailRequest,
-    api_key: str = Depends(verify_api_key)
+    client: str = Depends(verify_api_key)
 ):
     result = {
         "email": data.email,
         "is_valid": False,
-        "domain_exists": False
+        "domain_exists": False,
+        "client": client  # Retourne le nom du client
     }
 
     try:
